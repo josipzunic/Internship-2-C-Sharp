@@ -1,34 +1,63 @@
-# Common IntelliJ Platform excludes
+# ===========================================
+# Rider + .NET / C# project .gitignore
+# ===========================================
 
-# User specific
-**/.idea/**/workspace.xml
-**/.idea/**/tasks.xml
-**/.idea/shelf/*
-**/.idea/dictionaries
-**/.idea/httpRequests/
+# --- Rider / IntelliJ IDEA ---
+.idea/
+# Or more specific excludes if you prefer fine control:
+# **/.idea/**/workspace.xml
+# **/.idea/**/tasks.xml
+# **/.idea/shelf/*
+# **/.idea/dictionaries
+# **/.idea/httpRequests/
+# **/.idea/**/dataSources/
+# **/.idea/**/dataSources.ids
+# **/.idea/**/dataSources.xml
+# **/.idea/**/dataSources.local.xml
+# **/.idea/**/sqlDataSources.xml
+# **/.idea/**/dynamic.xml
+# **/.idea/**/*.iml
+# **/.idea/**/contentModel.xml
+# **/.idea/**/modules.xml
 
-# Sensitive or high-churn files
-**/.idea/**/dataSources/
-**/.idea/**/dataSources.ids
-**/.idea/**/dataSources.xml
-**/.idea/**/dataSources.local.xml
-**/.idea/**/sqlDataSources.xml
-**/.idea/**/dynamic.xml
-
-# Rider
-# Rider auto-generates .iml files, and contentModel.xml
-**/.idea/**/*.iml
-**/.idea/**/contentModel.xml
-**/.idea/**/modules.xml
-
-*.suo
-*.user
-.vs/
+# --- Visual Studio / .NET build outputs ---
 [Bb]in/
 [Oo]bj/
-_UpgradeReport_Files/
-[Pp]ackages/
+[Ll]og/
+[Ll]ogs/
+[Tt]emp/
+[Tt]mp/
 
+# --- User-specific files ---
+*.user
+*.userosscache
+*.suo
+*.sln.docstates
+*.userprefs
+
+# --- Build results ---
+*.pdb
+*.cache
+*.ilk
+*.log
+*.obj
+*.exe
+*.dll
+
+# --- Visual Studio ---
+.vs/
+
+# --- NuGet packages ---
+[Pp]ackages/
+*.nupkg
+*.snupkg
+
+# --- Others ---
+_ReSharper*/
+*.[Rr]e[Ss]harper
 Thumbs.db
 Desktop.ini
 .DS_Store
+*.swp
+*.bak
+*.tmp
