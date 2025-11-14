@@ -140,7 +140,7 @@ static void deleteActionOnAffirmation(List<Dictionary<string, string>> users, st
 
 static void deleteByName(List<Dictionary<string, string>> users)
 {
-    string nameAndSurname, name, surname;
+    string nameAndSurname, name, firstSurname, secondSurname, surname;
     do
     {
         Console.Write("Upišite ime i prezime korisnika kojeg želite obrisati: ");
@@ -148,7 +148,9 @@ static void deleteByName(List<Dictionary<string, string>> users)
         
         var arrayWithNameAndSurname = nameAndSurname.Split(" ");
         name =  arrayWithNameAndSurname[0];
-        surname = arrayWithNameAndSurname[1];
+        firstSurname = arrayWithNameAndSurname[1];
+        secondSurname = arrayWithNameAndSurname[2];
+        surname = $"{firstSurname} {secondSurname}";
         
         var condition = users.Any(dict => 
             (dict.ContainsKey("name") && dict["name"] == name)
@@ -197,37 +199,55 @@ static void deleteByName(List<Dictionary<string, string>> users)
 
 static void editUserById(List<Dictionary<string, string>> users)
 {
+    string dataToChange;
     do
     {
-        //ovdje trebas dovrsit uredivanje
         Console.WriteLine("a) Ime: ");
         Console.WriteLine("b) Prezime: ");
         Console.WriteLine("c) Datum rođenja");
         Console.WriteLine("d) Povratak");
         Console.Write("Unesite podatak koji želite izmijeniti: ");
-        string dataToChange = Console.ReadLine();
-        Console.Write("Upišite id korisnika kojeg želite obrisati: ");
-        string id = Console.ReadLine();
-        
-        var dict = new Dictionary<string,string>();
-        dict["a)"] = "ime";
-        dict["b)"] = "prezime";
-        dict["c)"] = "datum rođenja";
+        dataToChange = Console.ReadLine();
+
+    } while (dataToChange.ToLower().Replace(")", "") != "a" 
+             && dataToChange.ToLower().Replace(")", "") != "b"
+             && dataToChange.ToLower().Replace(")", "") != "c"
+             && dataToChange.ToLower().Replace(")", "") != "d");
+
+    if (dataToChange.ToLower().Replace(")", "") != "d")
+    {
+        do
+        {
+            Console.Write("Upišite id korisnika kojeg želite obrisati: ");
+            string id = Console.ReadLine();
+            
+            var condition = users.Any(dict => dict.ContainsKey("id") && dict["id"] == id);
+            if (!condition) Console.WriteLine($"Korisnik s id-om {id} nije pronađen");
+            else
+            {
+                var dict = new Dictionary<string,string>();
+                dict["a"] = "ime";
+                dict["b"] = "prezime";
+                dict["c"] = "datum rođenja";
+                    
+                Console.Write($"(Ažuriranje {dict[dataToChange]}) ");
+                    
+                if (dataToChange == "a") dataToChange = "name";
+                else if (dataToChange == "b") dataToChange = "surname";
+                else dataToChange = "dob";
                 
-        Console.Write($"Unesite novu vrijednost za {dict[dataToChange]}: ");
-                
-        if (dataToChange == "a)") dataToChange = "name";
-        else if (dataToChange == "b)") dataToChange = "surname";
-        else dataToChange = "dob";
-                
-        string newValue = Console.ReadLine();
-        editUser(users, dataToChange, newValue, id);
-        waitOnKeyPress();
-        
-        var condition = users.Any(dict => dict.ContainsKey("id") && dict["id"] == id);
-        if (!condition) Console.WriteLine($"Korisnik s id-om {id} nije pronađen");
-        else break;
-    } while (true);
+                string newValue;
+                if (dataToChange == "name") newValue = checkInputValidity("ime");
+                else if (dataToChange == "surname") newValue = checkInputValidity("prezime");
+                else newValue = checkDateValidity();
+
+                confirmationMessage("izmijeniti");
+                editUser(users, dataToChange, newValue, id);
+                waitOnKeyPress();
+                break;
+            }
+        } while (true);
+    }
 }
 
 static string confirmationMessage(string action)
@@ -241,7 +261,6 @@ static string confirmationMessage(string action)
         else Console.WriteLine("Molim unesite da ili ne");
     } while (true);
     
-    
 }
 
 static void waitOnKeyPress()
@@ -250,29 +269,36 @@ static void waitOnKeyPress()
     Console.ReadKey();
 }
 
-static bool checkInputValidity(string name, string nameOrSurname)
+static string checkInputValidity(string nameOrSurname)
 {
-    bool validity = true;
-    if (string.IsNullOrEmpty(name)) Console.WriteLine($"{nameOrSurname} ne može biti prazno");
-    else if (!name.All(c => char.IsLetter(c) || c == ' ' || c == '-'))
-        Console.WriteLine($"{nameOrSurname} može sadržavati samo slova ili crticu");
-    else validity = false;
-    
-    return validity;
+    do
+    {
+        Console.Write($"Unesite {nameOrSurname} korisnika: ");
+        string name = Console.ReadLine();
+        if (string.IsNullOrEmpty(name)) Console.WriteLine($"{nameOrSurname} ne može biti prazno");
+        else if (!name.All(c => char.IsLetter(c) || c == ' ' || c == '-'))
+            Console.WriteLine($"{nameOrSurname} može sadržavati samo slova ili crticu");
+        else return name;
+    } while (true);
 }
 
-static bool checkDateValidity(string date)
+static string checkDateValidity()
 {
-    bool validity = true;
     var currentDate = DateTime.Now;
-    var dateTimeValidity = DateTime.TryParse(date, out DateTime dateTime);
-    if(string.IsNullOrEmpty(date)) Console.WriteLine("Datum rođenja ne može biti prazan");
-    else if (!dateTimeValidity)
-        Console.WriteLine("Unesite datum rođenja u formatu yyyy-mm-dd");
-    else if(currentDate.Year < dateTime.Year)
-        Console.WriteLine("Unesena godina ne može biti kasnija od trenutne");
-    else validity = false;
-    return validity;
+    do
+    {
+        Console.Write("Unesite datum rođenja novog korisnika u formatu yyyy-mm-dd: ");
+        string DoB = Console.ReadLine();
+        var dateTimeValidity = DateTime.TryParse(DoB, out DateTime dateTime);
+        if(string.IsNullOrEmpty(DoB)) Console.WriteLine("Datum rođenja ne može biti prazan");
+        else if (!dateTimeValidity)
+            Console.WriteLine("Unesite datum rođenja u formatu yyyy-mm-dd");
+        else if(currentDate.Year < dateTime.Year)
+            Console.WriteLine("Unesena godina ne može biti kasnija od trenutne");
+        else return DoB;
+    } while (true);
+    
+    
 }
 
 static void mainMenuFunctionality(string input,  List<Dictionary<string, string>> users, int idCounter)
@@ -281,23 +307,9 @@ static void mainMenuFunctionality(string input,  List<Dictionary<string, string>
     {
         case "1":
         {
-            string name, surname, DoB;
-            do
-            {
-                Console.Write("Unesite ime novog korisnika: ");
-                name = Console.ReadLine();
-            } while (checkInputValidity(name, "ime"));
-            do
-            {
-                Console.Write("Unesite prezime novog korisnika: ");
-                surname = Console.ReadLine();
-            } while (checkInputValidity(surname, "prezime"));
-
-            do
-            {
-                Console.Write("Unesite datum rođenja novog korisnika u formatu yyyy-mm-dd: ");
-                DoB = Console.ReadLine();
-            } while (checkDateValidity(DoB));
+            string name = checkInputValidity("ime");
+            string surname = checkInputValidity("prezime");
+            string DoB = checkDateValidity();
 
             var newUser = addUser(name, surname, DoB, ref idCounter);
             users.Add(newUser);
