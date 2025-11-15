@@ -1,10 +1,12 @@
 ﻿using System.Globalization;
+using System.Runtime.InteropServices;
 using System.Security.Cryptography;
 
 static void writeMainMenu()
 {
     Console.WriteLine("1 - Korisnici");
     Console.WriteLine("2 - Putovanja");
+    Console.WriteLine("3 - Statistika");
     Console.WriteLine("0 - Izlaz iz aplikacije");
     Console.Write("Odaberite opciju na izborniku upisivanjem broja uz željenu opciju: ");
 }
@@ -26,6 +28,16 @@ static void writeTripMenu()
     Console.WriteLine("3 - Uređivanje postojećeg putovanja");
     Console.WriteLine("4 - Pregled svih putovanja");
     Console.WriteLine("5 - Izvještaji i analize");
+    Console.WriteLine("0 - Povratak na glavni izbornik");
+    Console.Write("Odaberite opciju na izborniku upisivanjem broja uz željenu opciju: ");
+}
+
+static void writeStatisticsMenu()
+{
+    Console.WriteLine("1 - Korisnik s najvećim ukupnim troškom goriva");
+    Console.WriteLine("2 - Korisnik s najviše putovanja");
+    Console.WriteLine("3 - Prosječan broj putovanja po korisniku");
+    Console.WriteLine("4 - Ukupan broj prijeđenih kilometara svih korisnika");
     Console.WriteLine("0 - Povratak na glavni izbornik");
     Console.Write("Odaberite opciju na izborniku upisivanjem broja uz željenu opciju: ");
 }
@@ -981,9 +993,97 @@ static void tripMenuFunctionality(string input, int idCounterTrip, List<Dictiona
     }
 }
 
+static void statisticsMenuFunctionality(List<Dictionary<string, object>> users, string input)
+{
+    switch (input)
+    {
+        case "1":
+        {
+            var fuelSpent = new List<List<double>>();
+            for (int i = 0; i < users.Count; i++)
+            {
+                var oneUser = new List<Dictionary<string, object>>();
+                oneUser.Add(users[i]);
+                var trips = ExtractTripsFromUsers(oneUser);
+                var fuelSpentPerUser = trips.Sum(dict => double.Parse(dict["spentFuel"]));
+                fuelSpent.Add([i, fuelSpentPerUser]);
+            }
+
+            double maxFuelSpent = fuelSpent.Max(sublist => sublist[1]);
+            var listOfUsers = fuelSpent.Where(sublist => sublist[1] == maxFuelSpent).ToList();
+            foreach (var user in listOfUsers)
+            {
+                Console.WriteLine($"Korisnik {users[(int)user[0]]["name"]} {users[(int)user[0]]["surname"]} ima potrošeno najviše" +
+                                  $"litara goriva: {user[1]} L");
+            }
+            waitOnKeyPress();
+            break;
+        }
+        case "2":
+        {
+            var numberOfTrips = new List<List<double>>();
+            for (int i = 0; i < users.Count; i++)
+            {
+                var oneUser = new List<Dictionary<string, object>>();
+                oneUser.Add(users[i]);
+                var trips = ExtractTripsFromUsers(oneUser);
+                var numberOfTripsPerUser = trips.Count();
+                numberOfTrips.Add([i, numberOfTripsPerUser]);
+            }
+            double maxTrips = numberOfTrips.Max(sublist => sublist[1]);
+            var listOfUsers = numberOfTrips.Where(sublist => sublist[1] == maxTrips).ToList();
+            foreach (var user in listOfUsers)
+            {
+                Console.WriteLine($"Korisnik {users[(int)user[0]]["name"]} {users[(int)user[0]]["surname"]} ima najviše " +
+                                  $"putovanja: {user[1]}");
+            }
+            waitOnKeyPress();
+            break;
+        }
+        case "3":
+        {
+            var listOfTrips = new List<int>();
+            for (int i = 0; i < users.Count; i++)
+            {
+                var oneUser = new List<Dictionary<string, object>>();
+                oneUser.Add(users[i]);
+                var trips = ExtractTripsFromUsers(oneUser);
+                var numberOfTripsPerUser = trips.Count();
+                listOfTrips.Add(numberOfTripsPerUser);
+            }
+
+            var totalNumberOfTrips = listOfTrips.Sum();
+            var numberOfUsers = users.Count;
+            double averageNumberOfTrips = (double)totalNumberOfTrips / numberOfUsers;
+            Console.WriteLine($"Prosječan broj putovanja je: {averageNumberOfTrips}");
+            waitOnKeyPress();
+            break;
+        }
+        case "4":
+        {
+            var listOfMileage = new List<double>();
+            for (int i = 0; i < users.Count; i++)
+            {
+                var oneUser = new List<Dictionary<string, object>>();
+                oneUser.Add(users[i]);
+                var trips = ExtractTripsFromUsers(oneUser);
+                var mileagePerUser = trips.Sum(dict => double.Parse(dict["mileage"]));
+                listOfMileage.Add(mileagePerUser);
+            }
+
+            double totalMileage = listOfMileage.Sum();
+            Console.WriteLine($"Ukupna kilometraža je: {totalMileage}");
+            waitOnKeyPress();
+            break;
+        }
+        
+    }
+}
+
 bool onMainMenu = true;
 bool onUsersMenu = false;
 bool onTripMenu = false;
+bool onStatisticMenu = false;
 
 var users = new List<Dictionary<string, object>>();
 
@@ -1041,6 +1141,13 @@ do
         input = Console.ReadLine();
         tripMenuFunctionality(input, idCounterTrip, users);
     }
+    else if (onStatisticMenu)
+    {
+        Console.Clear();
+        writeStatisticsMenu();
+        input = Console.ReadLine();
+        statisticsMenuFunctionality(users, input);
+    }
     else
     {
         input = "dogodilo se nesto neocekivano";
@@ -1065,10 +1172,20 @@ do
         onUsersMenu = false;
         onMainMenu = false;
         onTripMenu = true;
+        onStatisticMenu = false;
         Console.WriteLine("\nUlazak na meni s putovanjima\n");
     }
+    
+    else if (input == "3" && onMainMenu)
+    {
+        onUsersMenu = false;
+        onMainMenu = false;
+        onTripMenu = false;
+        onStatisticMenu = true;
+        Console.WriteLine("\nUlazak na statistika meni\n");
+    }
 
-    else if (onUsersMenu && input == "0" || onTripMenu && input == "0")
+    else if (onUsersMenu && input == "0" || onTripMenu && input == "0" || onStatisticMenu && input == "0")
     {
         onUsersMenu = false;
         onMainMenu = true;
