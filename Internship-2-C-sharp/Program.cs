@@ -30,10 +30,80 @@ static void writeTripMenu()
     Console.Write("Odaberite opciju na izborniku upisivanjem broja uz željenu opciju: ");
 }
 
-static void deleteUserAndMessage(List<Dictionary<string, object>> users, int index)
+static void writeDeletionOptionsMenu(string type)
 {
-    Console.WriteLine($"Korisnik {users[index]["name"]} {users[index]["surname"]} je uspješno izbrisan");
-    users.RemoveAt(index);
+    if (type == "user")
+    {
+        Console.WriteLine("Upišite slovo ispred načina brisanja korisnika: ");
+        Console.WriteLine("a) id");
+        Console.WriteLine("b) ime i prezime");
+        Console.WriteLine("c) povratak");
+        Console.Write("Vaš odabir: ");
+    }
+    else
+    {
+        Console.WriteLine("Odaberite način za obrisati putovanje");
+        Console.WriteLine("a) id");
+        Console.WriteLine("b) sva putovanja skuplja od određene cijene");
+        Console.WriteLine("c) sva putovanja jeftinija od određene cijene");
+        Console.WriteLine("d) povratak");
+        Console.Write("Vaš odabir: ");
+    }
+}
+
+static void waitOnKeyPress()
+{
+    Console.WriteLine("Pritisnite bilo koju tipku za nastavak");
+    Console.ReadKey();
+}
+
+static void writeUsersList(List<Dictionary<string, object>> users)
+{
+    foreach (var user in users)
+    {
+        var name = user["name"];
+        var surname = user["surname"];
+        var DoB = user["dob"];
+        var id =  user["id"];
+        if(users.Count == 0) Console.WriteLine("Popis korisnika je prazan");
+        else Console.WriteLine($"{id} - {name} - {surname} - {DoB}");
+        
+    }
+}
+
+static void writeListOfTrips(List<Dictionary<string, string>> trips)
+{
+    foreach (var trip in trips)
+    {
+        Console.WriteLine($"Putovanje {trip["id"]}");
+        Console.WriteLine($"Datum: {trip["dot"]}");
+        Console.WriteLine($"Kilometri: {trip["mileage"]}");
+        Console.WriteLine($"Gorivo: {trip["spentFuel"]}");
+        Console.WriteLine($"Cijena po litri: {trip["pricePerLiter"]}");
+        Console.WriteLine($"Ukupno: {trip["priceOfTrip"]}\n");
+    }
+}
+
+static void writeListOfTripsInOrder(List<Dictionary<string, string>> trips, string sortKey, string ascOrDesc)
+{
+    trips.Sort((dict1, dict2) =>
+    {
+        if (sortKey == "dot")
+        {
+            DateTime idDict1 = DateTime.Parse(dict1[sortKey]);
+            DateTime idDict2 = DateTime.Parse(dict2[sortKey]);
+            if(ascOrDesc == "ascending") return idDict1.CompareTo(idDict2);
+            else return idDict2.CompareTo(idDict1);
+        }
+        else
+        {
+            int idDict1 = int.Parse(dict1[sortKey]);
+            int idDict2 = int.Parse(dict2[sortKey]);
+            if(ascOrDesc == "ascending") return idDict1.CompareTo(idDict2);
+            else return idDict2.CompareTo(idDict1);
+        }
+    });
+    writeListOfTrips(trips);
 }
 
 static Dictionary<string, object> addUser(string name, string surname, string DoB, ref int idCounterUsers, 
@@ -65,38 +135,209 @@ static Dictionary<string, string> addTrip(string dateOfTrip, double mileage,
     return trip;
 }
 
-static void writeUsersList(List<Dictionary<string, object>> users)
+static void editUser(List<Dictionary<string, object>> users, string dataToChange, string newValue, string id)
 {
-    foreach (var user in users)
+    int index = users.FindIndex(dict => dict.ContainsKey("id") && (string)dict["id"] == id);
+    users[index][dataToChange] = newValue;
+}
+
+static void editUserById(List<Dictionary<string, object>> users)
+{
+    string dataToChange;
+    do
     {
-        var name = user["name"];
-        var surname = user["surname"];
-        var DoB = user["dob"];
-        var id =  user["id"];
-        if(users.Count == 0) Console.WriteLine("Popis korisnika je prazan");
-        else Console.WriteLine($"{id} - {name} - {surname} - {DoB}");
-        
+        Console.WriteLine("a) Ime: ");
+        Console.WriteLine("b) Prezime: ");
+        Console.WriteLine("c) Datum rođenja");
+        Console.WriteLine("d) Povratak");
+        Console.Write("Unesite podatak koji želite izmijeniti: ");
+        dataToChange = Console.ReadLine().ToLower().Replace(")", "");
+
+    } while (dataToChange != "a" 
+             && dataToChange != "b"
+             && dataToChange != "c"
+             && dataToChange != "d");
+
+    if (dataToChange.ToLower().Replace(")", "") != "d")
+    {
+        do
+        {
+            Console.Write("Upišite id korisnika kojeg želite obrisati: ");
+            string id = Console.ReadLine();
+            
+            var condition = users.Any(dict => dict.ContainsKey("id") && (string)dict["id"] == id);
+            if (!condition) Console.WriteLine($"Korisnik s id-om {id} nije pronađen");
+            else
+            {
+                var dict = new Dictionary<string,string>();
+                dict["a"] = "ime";
+                dict["b"] = "prezime";
+                dict["c"] = "datuma rođenja";
+                    
+                Console.Write($"(Ažuriranje {dict[dataToChange]}) ");
+                    
+                if (dataToChange == "a") dataToChange = "name";
+                else if (dataToChange == "b") dataToChange = "surname";
+                else dataToChange = "dob";
+                
+                string newValue;
+                if (dataToChange == "name") newValue = checkInputValidity("ime");
+                else if (dataToChange == "surname") newValue = checkInputValidity("prezime");
+                else
+                {
+                    string message = "Unesite datum rođenja novog korisnika u formatu yyyy-mm-dd: ";
+                    newValue = checkDateValidity(message);
+                }
+
+                string affirmation = confirmationMessage("izmijeniti");
+                editActionOnAffirmation(users, affirmation, int.Parse(id), writeUsersMenu, dataToChange, newValue, 
+                    "user");
+                break;
+            }
+        } while (true);
     }
 }
 
-static void writeDeletionOptionsMenu(string type)
+static void editTrip(List<Dictionary<string, object>> users, string dataTocChange, string change, double id)
 {
-    if (type == "user")
+    if (dataTocChange == "a") dataTocChange = "dot";
+    else if (dataTocChange == "b") dataTocChange = "mileage";
+    else if(dataTocChange == "c") dataTocChange = "spentFuel";
+    else if(dataTocChange == "d") dataTocChange = "pricePerLiter";
+
+    int index = (int)id;
+    
+    var wantedTrip =
+        users
+            .Where(d => d.ContainsKey("listOfTrips") && d["listOfTrips"] is List<Dictionary<string, string>>)
+            .SelectMany(d => (List<Dictionary<string, string>>)d["listOfTrips"])
+            .FirstOrDefault(inner =>
+                inner.ContainsKey("id") &&
+                int.Parse(inner["id"]) == index
+            );
+    wantedTrip[dataTocChange] = change;
+    wantedTrip["priceOfTrip"] = (double.Parse(wantedTrip["spentFuel"]) * 
+                                 double.Parse(wantedTrip["pricePerLiter"])).ToString();
+}
+
+static void editActionOnAffirmation(List<Dictionary<string, object>> users, string affirmation, 
+    int index , Action writeMenu, string dataToChange, string newValue, string userOrTrip)
+{
+    if (affirmation == "da")
     {
-        Console.WriteLine("Upišite slovo ispred načina brisanja korisnika: ");
-        Console.WriteLine("a) id");
-        Console.WriteLine("b) ime i prezime");
-        Console.WriteLine("c) povratak");
-        Console.Write("Vaš odabir: ");
+        if (userOrTrip == "user") editUser(users, dataToChange, newValue, index.ToString());
+        else if (userOrTrip == "trip") editTrip(users, dataToChange, newValue, index);
+        waitOnKeyPress();
     }
     else
     {
-        Console.WriteLine("Odaberite način za obrisati putovanje");
-        Console.WriteLine("a) id");
-        Console.WriteLine("b) sva putovanja skuplja od određene cijene");
-        Console.WriteLine("c) sva putovanja jeftinija od određene cijene");
-        Console.WriteLine("d) povratak");
-        Console.Write("Vaš odabir: ");
+        Console.WriteLine("Odustajanje od brisanja, pritiskom bilo koje tipke vratit ćete se na prijašnji meni");
+        Console.ReadKey();
+        Console.Clear();
+        writeMenu();
+    }
+}
+
+static void deleteUserById(List<Dictionary<string, object>> users)
+{
+    string id;
+    do
+    {
+        Console.Write("Upišite id korisnika kojeg želite obrisati: ");
+        id = Console.ReadLine();
+        var condition = users.Any(dict => dict.ContainsKey("id") && (string)dict["id"] == id);
+        if (!condition) Console.WriteLine($"Korisnik s id-om {id} nije pronađen");
+        else break;
+    } while (true);
+    var message = confirmationMessage("izbrisati");
+    int index = users.FindIndex(dict => dict.ContainsKey("id") && (string)dict["id"] == id);
+    deleteActionOnAffirmation(users, message, index, writeUsersMenu, 0, 0, "user");
+}
+
+static void deleteUserByName(List<Dictionary<string, object>> users)
+{
+    var userIndexAndCount = fetchUserByName(users);
+    int index = userIndexAndCount[0];
+    int count = userIndexAndCount[1];
+    
+    string name = users[index]["name"].ToString();
+    string surname = users[index]["surname"].ToString();
+
+    
+    if (count > 1)
+    {
+        findSameNameUsers(users, name, surname);
+        deleteUserById(users);
+    }
+    else
+    {
+        var message = confirmationMessage("izbrisati");
+        deleteActionOnAffirmation(users, message, index, writeUsersMenu, 0, 0, "user");
+    }
+    
+}
+
+static void deleteTripAndMessage(List<Dictionary<string, object>> users, int indexOfUser, int indexOfTrip)
+{
+    Console.WriteLine("Putovanje je uspješno izbrisano");
+    var listOfTrips = (List<Dictionary<string, string>>)users[indexOfUser]["listOfTrips"];
+    listOfTrips.RemoveAt(indexOfTrip);
+}
+
+static void deleteUserAndMessage(List<Dictionary<string, object>> users, int index)
+{
+    Console.WriteLine($"Korisnik {users[index]["name"]} {users[index]["surname"]} je uspješno izbrisan");
+    users.RemoveAt(index);
+}
+
+static void deleteTripById(List<Dictionary<string, object>> users, double id)
+{
+    int indexOfTrip = 0, indexOfUser = 0;
+    for (int i = 0; i < users.Count; i++)
+    {
+        var listOfTrips = (List<Dictionary<string, string>>)users[i]["listOfTrips"];
+        indexOfTrip = listOfTrips.FindIndex(dict => 
+            dict.ContainsKey("id") && double.Parse(dict["id"]) == id);
+        indexOfUser = i;
+        if (indexOfTrip != -1) break;
+    }
+
+    string message = confirmationMessage("izbrisati");
+    deleteActionOnAffirmation(users, message, 0, writeTripMenu, indexOfUser, indexOfTrip, "trip");
+}
+
+static void deleteTripsByPrice(List<Dictionary<string, object>> users, string condition, double value)
+{
+    if (condition == "expensive")
+        foreach (var user in users)
+        {
+            var TempList = (List<Dictionary<string, string>>)user["listOfTrips"];
+            TempList.RemoveAll(dict => double.Parse(dict["priceOfTrip"]) >= value);
+        }
+    else if (condition == "cheap")
+        foreach (var user in users)
+        {
+            var TempList = (List<Dictionary<string, string>>)user["listOfTrips"];
+            TempList.RemoveAll(dict => double.Parse(dict["priceOfTrip"]) <= value);
+        }
+}
+
+
+static void deleteActionOnAffirmation(List<Dictionary<string, object>> users, string affirmation, 
+    int index , Action writeMenu, int indexOfUser, int indexOfTrip, string userOrTrip)
+{
+    if (affirmation == "da")
+    {
+        if (userOrTrip == "user") deleteUserAndMessage(users, index);
+        else if (userOrTrip == "trip") deleteTripAndMessage(users, indexOfUser, indexOfTrip);
+        waitOnKeyPress();
+    }
+    else
+    {
+        Console.WriteLine("Odustajanje od brisanja, pritiskom bilo koje tipke vratit ćete se na prijašnji meni");
+        Console.ReadKey();
+        Console.Clear();
+        writeMenu();
     }
 }
 
@@ -140,65 +381,6 @@ static List<Dictionary<string, object>> returnUsersWithMutlipleTrips(List<Dictio
         if (trips.Count >= 2) usersWithMultipleTrips.Add(user);
     }
     return usersWithMultipleTrips;
-}
-
-static void editUser(List<Dictionary<string, object>> users, string dataToChange, string newValue, string id)
-{
-    int index = users.FindIndex(dict => dict.ContainsKey("id") && (string)dict["id"] == id);
-    users[index][dataToChange] = newValue;
-}
-
-
-static void deleteUserById(List<Dictionary<string, object>> users)
-{
-    string id;
-    do
-    {
-        Console.Write("Upišite id korisnika kojeg želite obrisati: ");
-        id = Console.ReadLine();
-        var condition = users.Any(dict => dict.ContainsKey("id") && (string)dict["id"] == id);
-        if (!condition) Console.WriteLine($"Korisnik s id-om {id} nije pronađen");
-        else break;
-    } while (true);
-    var message = confirmationMessage("izbrisati");
-    int index = users.FindIndex(dict => dict.ContainsKey("id") && (string)dict["id"] == id);
-    deleteActionOnAffirmation(users, message, index, writeUsersMenu, 0, 0, "user");
-}
-
-static void deleteActionOnAffirmation(List<Dictionary<string, object>> users, string affirmation, 
-    int index , Action writeMenu, int indexOfUser, int indexOfTrip, string userOrTrip)
-{
-    if (affirmation == "da")
-    {
-        if (userOrTrip == "user") deleteUserAndMessage(users, index);
-        else if (userOrTrip == "trip") deleteTripAndMessage(users, indexOfUser, indexOfTrip);
-        waitOnKeyPress();
-    }
-    else
-    {
-        Console.WriteLine("Odustajanje od brisanja, pritiskom bilo koje tipke vratit ćete se na prijašnji meni");
-        Console.ReadKey();
-        Console.Clear();
-        writeMenu();
-    }
-}
-
-static void editActionOnAffirmation(List<Dictionary<string, object>> users, string affirmation, 
-    int index , Action writeMenu, string dataToChange, string newValue, string userOrTrip)
-{
-    if (affirmation == "da")
-    {
-        if (userOrTrip == "user") editUser(users, dataToChange, newValue, index.ToString());
-        else if (userOrTrip == "trip") editTrip(users, dataToChange, newValue, index);
-        waitOnKeyPress();
-    }
-    else
-    {
-        Console.WriteLine("Odustajanje od brisanja, pritiskom bilo koje tipke vratit ćete se na prijašnji meni");
-        Console.ReadKey();
-        Console.Clear();
-        writeMenu();
-    }
 }
 
 static List<int> fetchUserByName(List<Dictionary<string, object>> users)
@@ -342,87 +524,6 @@ static List<Dictionary<string, string>> findSameTrips(List<Dictionary<string, st
     return tripsWithSamevalue;
 }
 
-static void deleteUserByName(List<Dictionary<string, object>> users)
-{
-    var userIndexAndCount = fetchUserByName(users);
-    int index = userIndexAndCount[0];
-    int count = userIndexAndCount[1];
-    
-    string name = users[index]["name"].ToString();
-    string surname = users[index]["surname"].ToString();
-
-    
-    if (count > 1)
-    {
-        findSameNameUsers(users, name, surname);
-        deleteUserById(users);
-    }
-    else
-    {
-        var message = confirmationMessage("izbrisati");
-        deleteActionOnAffirmation(users, message, index, writeUsersMenu, 0, 0, "user");
-    }
-    
-}
-
-static void editUserById(List<Dictionary<string, object>> users)
-{
-    string dataToChange;
-    do
-    {
-        Console.WriteLine("a) Ime: ");
-        Console.WriteLine("b) Prezime: ");
-        Console.WriteLine("c) Datum rođenja");
-        Console.WriteLine("d) Povratak");
-        Console.Write("Unesite podatak koji želite izmijeniti: ");
-        dataToChange = Console.ReadLine().ToLower().Replace(")", "");
-
-    } while (dataToChange != "a" 
-             && dataToChange != "b"
-             && dataToChange != "c"
-             && dataToChange != "d");
-
-    if (dataToChange.ToLower().Replace(")", "") != "d")
-    {
-        do
-        {
-            Console.Write("Upišite id korisnika kojeg želite obrisati: ");
-            string id = Console.ReadLine();
-            
-            var condition = users.Any(dict => dict.ContainsKey("id") && (string)dict["id"] == id);
-            if (!condition) Console.WriteLine($"Korisnik s id-om {id} nije pronađen");
-            else
-            {
-                var dict = new Dictionary<string,string>();
-                dict["a"] = "ime";
-                dict["b"] = "prezime";
-                dict["c"] = "datuma rođenja";
-                    
-                Console.Write($"(Ažuriranje {dict[dataToChange]}) ");
-                    
-                if (dataToChange == "a") dataToChange = "name";
-                else if (dataToChange == "b") dataToChange = "surname";
-                else dataToChange = "dob";
-                
-                string newValue;
-                if (dataToChange == "name") newValue = checkInputValidity("ime");
-                else if (dataToChange == "surname") newValue = checkInputValidity("prezime");
-                else
-                {
-                    string message = "Unesite datum rođenja novog korisnika u formatu yyyy-mm-dd: ";
-                    newValue = checkDateValidity(message);
-                }
-
-                string affirmation = confirmationMessage("izmijeniti");
-                //editUser(users, dataToChange, newValue, id);
-                editActionOnAffirmation(users, affirmation, int.Parse(id), writeUsersMenu, dataToChange, newValue, 
-                    "user");
-                break;
-            }
-        } while (true);
-    }
-}
-
 static string confirmationMessage(string action)
 {
     string input;
@@ -434,12 +535,6 @@ static string confirmationMessage(string action)
         else Console.WriteLine("Molim unesite da ili ne");
     } while (true);
     
-}
-
-static void waitOnKeyPress()
-{
-    Console.WriteLine("Pritisnite bilo koju tipku za nastavak");
-    Console.ReadKey();
 }
 
 static string checkInputValidity(string nameOrSurname)
@@ -484,6 +579,15 @@ static double checkNumberValidity(string message)
             Console.WriteLine("Unesite broj");
         else return number;
     } while (true);
+}
+
+static List<Dictionary<string, string>> ExtractTripsFromUsers(List<Dictionary<string, object>> users)
+{
+    var trips = new List<Dictionary<string, string>>();
+    foreach (var user in users)
+        foreach (var trip in (List<Dictionary<string, string>>)user["listOfTrips"])
+            trips.Add(trip);
+    return trips;
 }
 
 static void userMenuFunctionality(string input,  List<Dictionary<string, object>> users, int idCounter)
@@ -577,127 +681,6 @@ static void userMenuFunctionality(string input,  List<Dictionary<string, object>
             break;
         }
     }
-}
-
-/*static int fetchUser()
-{
-    do
-    {
-        Console.Write("Unesite id ili ime i prezime korisnika: ");
-        string input = Console.ReadLine();
-        
-        
-        if (string.IsNullOrEmpty(input))
-            Console.WriteLine("Ovo polje ne može biti prazno");
-        else if(input.Split(" ").Length > 1 && )
-        
-        
-    } while (true);
-    
-}*/
-static void deleteTripAndMessage(List<Dictionary<string, object>> users, int indexOfUser, int indexOfTrip)
-{
-    Console.WriteLine("Putovanje je uspješno izbrisano");
-    var listOfTrips = (List<Dictionary<string, string>>)users[indexOfUser]["listOfTrips"];
-    listOfTrips.RemoveAt(indexOfTrip);
-}
-
-static void deleteTripById(List<Dictionary<string, object>> users, double id)
-{
-    int indexOfTrip = 0, indexOfUser = 0;
-    for (int i = 0; i < users.Count; i++)
-    {
-        var listOfTrips = (List<Dictionary<string, string>>)users[i]["listOfTrips"];
-        indexOfTrip = listOfTrips.FindIndex(dict => 
-            dict.ContainsKey("id") && double.Parse(dict["id"]) == id);
-        indexOfUser = i;
-        if (indexOfTrip != -1) break;
-    }
-
-    string message = confirmationMessage("izbrisati");
-    deleteActionOnAffirmation(users, message, 0, writeTripMenu, indexOfUser, indexOfTrip, "trip");
-}
-
-static void writeListOfTrips(List<Dictionary<string, string>> trips)
-{
-    foreach (var trip in trips)
-    {
-        Console.WriteLine($"Putovanje {trip["id"]}");
-        Console.WriteLine($"Datum: {trip["dot"]}");
-        Console.WriteLine($"Kilometri: {trip["mileage"]}");
-        Console.WriteLine($"Gorivo: {trip["spentFuel"]}");
-        Console.WriteLine($"Cijena po litri: {trip["pricePerLiter"]}");
-        Console.WriteLine($"Ukupno: {trip["priceOfTrip"]}\n");
-    }
-}
-
-static List<Dictionary<string, string>> ExtractTripsFromUsers(List<Dictionary<string, object>> users)
-{
-    var trips = new List<Dictionary<string, string>>();
-    foreach (var user in users)
-        foreach (var trip in (List<Dictionary<string, string>>)user["listOfTrips"])
-            trips.Add(trip);
-    return trips;
-}
-
-static void writeListOfTripsInOrder(List<Dictionary<string, string>> trips, string sortKey, string ascOrDesc)
-{
-    trips.Sort((dict1, dict2) =>
-    {
-        if (sortKey == "dot")
-        {
-            DateTime idDict1 = DateTime.Parse(dict1[sortKey]);
-            DateTime idDict2 = DateTime.Parse(dict2[sortKey]);
-            if(ascOrDesc == "ascending") return idDict1.CompareTo(idDict2);
-            else return idDict2.CompareTo(idDict1);
-        }
-        else
-        {
-            int idDict1 = int.Parse(dict1[sortKey]);
-            int idDict2 = int.Parse(dict2[sortKey]);
-            if(ascOrDesc == "ascending") return idDict1.CompareTo(idDict2);
-            else return idDict2.CompareTo(idDict1);
-        }
-    });
-    writeListOfTrips(trips);
-}
-
-static void deleteTripsByPrice(List<Dictionary<string, object>> users, string condition, double value)
-{
-    if (condition == "expensive")
-        foreach (var user in users)
-        {
-            var TempList = (List<Dictionary<string, string>>)user["listOfTrips"];
-            TempList.RemoveAll(dict => double.Parse(dict["priceOfTrip"]) >= value);
-        }
-    else if (condition == "cheap")
-        foreach (var user in users)
-        {
-            var TempList = (List<Dictionary<string, string>>)user["listOfTrips"];
-            TempList.RemoveAll(dict => double.Parse(dict["priceOfTrip"]) <= value);
-        }
-}
-
-static void editTrip(List<Dictionary<string, object>> users, string dataTocChange, string change, double id)
-{
-    if (dataTocChange == "a") dataTocChange = "dot";
-    else if (dataTocChange == "b") dataTocChange = "mileage";
-    else if(dataTocChange == "c") dataTocChange = "spentFuel";
-    else if(dataTocChange == "d") dataTocChange = "pricePerLiter";
-
-    int index = (int)id;
-    
-    var wantedTrip =
-        users
-            .Where(d => d.ContainsKey("listOfTrips") && d["listOfTrips"] is List<Dictionary<string, string>>)
-            .SelectMany(d => (List<Dictionary<string, string>>)d["listOfTrips"])
-            .FirstOrDefault(inner =>
-                inner.ContainsKey("id") &&
-                int.Parse(inner["id"]) == index
-            );
-    wantedTrip[dataTocChange] = change;
-    wantedTrip["priceOfTrip"] = (double.Parse(wantedTrip["spentFuel"]) * 
-                                 double.Parse(wantedTrip["pricePerLiter"])).ToString();
 }
 
 static void tripMenuFunctionality(string input, int idCounterTrip, List<Dictionary<string, object>> users)
