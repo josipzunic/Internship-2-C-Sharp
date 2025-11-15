@@ -213,6 +213,12 @@ static List<int> fetchUserByName(List<Dictionary<string, object>> users)
             Console.WriteLine("Ovo polje ne može biti prazno, unesite ime");
             continue;
         }
+        else if (nameAndSurname.Split(" ").Length < 2)
+        {
+            Console.WriteLine("Unesite ime i prezime");
+            continue;
+        }
+            
         
         var arrayWithNameAndSurname = nameAndSurname.Split(" ");
         name =  arrayWithNameAndSurname[0];
@@ -258,9 +264,36 @@ static int fetchUserById(List<Dictionary<string, object>> users)
             Console.WriteLine("Ovo polje ne smije biti prazno");
         else if(!int.TryParse(input, out int number))
             Console.WriteLine("Unos mora biti cijeli pozitivni broj");
+        else if(!users.Any(dict => (string)dict["id"] == input))
+            Console.WriteLine("Korisnik s unesenim id-om ne postoji");
         else
         {
             users.FindIndex(dict => dict["id"] == input);
+            id = int.Parse(input);
+            break;
+        }
+    } while (true);
+
+    return id;
+}
+
+static int fetchTripById(List<Dictionary<string, object>> users)
+{
+    int id;
+    var trips = ExtractTripsFromUsers(users);
+    do
+    {
+        Console.Write("Unesite id: ");
+        string input = Console.ReadLine();
+        if (string.IsNullOrEmpty(input))
+            Console.WriteLine("Ovo polje ne smije biti prazno");
+        else if(!int.TryParse(input, out int number))
+            Console.WriteLine("Unos mora biti cijeli pozitivni broj");
+        else if(!trips.Any(dict => dict["id"] == input))
+            Console.WriteLine("Putovanje s unesenim id-om ne postoji");
+        else
+        {
+            trips.FindIndex(dict => dict["id"] == input);
             id = int.Parse(input);
             break;
         }
@@ -342,12 +375,12 @@ static void editUserById(List<Dictionary<string, object>> users)
         Console.WriteLine("c) Datum rođenja");
         Console.WriteLine("d) Povratak");
         Console.Write("Unesite podatak koji želite izmijeniti: ");
-        dataToChange = Console.ReadLine();
+        dataToChange = Console.ReadLine().ToLower().Replace(")", "");
 
-    } while (dataToChange.ToLower().Replace(")", "") != "a" 
-             && dataToChange.ToLower().Replace(")", "") != "b"
-             && dataToChange.ToLower().Replace(")", "") != "c"
-             && dataToChange.ToLower().Replace(")", "") != "d");
+    } while (dataToChange != "a" 
+             && dataToChange != "b"
+             && dataToChange != "c"
+             && dataToChange != "d");
 
     if (dataToChange.ToLower().Replace(")", "") != "d")
     {
@@ -653,17 +686,18 @@ static void editTrip(List<Dictionary<string, object>> users, string dataTocChang
     else if(dataTocChange == "d") dataTocChange = "pricePerLiter";
 
     int index = (int)id;
-
-    foreach (var user in users)
-    {
-        var listOfTrips = (List<Dictionary<string, string>>)user["listOfTrips"];
-        if (listOfTrips.Any(dict => dict["id"] == id.ToString()))
-        {
-            listOfTrips[index][dataTocChange] = change;
-            listOfTrips[index]["priceOfTrip"] = (double.Parse(listOfTrips[index]["spentFuel"]) * 
-                                                double.Parse(listOfTrips[index]["pricePerLiter"])).ToString();
-        }
-    }
+    
+    var wantedTrip =
+        users
+            .Where(d => d.ContainsKey("listOfTrips") && d["listOfTrips"] is List<Dictionary<string, string>>)
+            .SelectMany(d => (List<Dictionary<string, string>>)d["listOfTrips"])
+            .FirstOrDefault(inner =>
+                inner.ContainsKey("id") &&
+                int.Parse(inner["id"]) == index
+            );
+    wantedTrip[dataTocChange] = change;
+    wantedTrip["priceOfTrip"] = (double.Parse(wantedTrip["spentFuel"]) * 
+                                 double.Parse(wantedTrip["pricePerLiter"])).ToString();
 }
 
 static void tripMenuFunctionality(string input, int idCounterTrip, List<Dictionary<string, object>> users)
@@ -719,7 +753,7 @@ static void tripMenuFunctionality(string input, int idCounterTrip, List<Dictiona
             double priceOfTrip = pricePerLiter * spentFuel;
             
             var newTrip = addTrip(dateOfTrip, mileage, spentFuel, 
-                priceOfTrip, priceOfTrip, ref idCounterTrip);
+                pricePerLiter, priceOfTrip, ref idCounterTrip);
             var tripsOfUser = (List<Dictionary<string, string>>)user["listOfTrips"];
             
             tripsOfUser.Add(newTrip);
@@ -788,7 +822,7 @@ static void tripMenuFunctionality(string input, int idCounterTrip, List<Dictiona
                      && condition != "e");
             if (condition == "a")
             {
-                double id = fetchUserById(users);
+                double id = fetchTripById(users);
                 string change = checkDateValidity("Unesite datum: ");
                 string affirmation = confirmationMessage("izmijeniti");
                 editActionOnAffirmation(users, affirmation, (int)id, writeTripMenu, condition,
@@ -796,7 +830,7 @@ static void tripMenuFunctionality(string input, int idCounterTrip, List<Dictiona
             }
             else if (condition == "b")
             {
-                double id = fetchUserById(users);
+                double id = fetchTripById(users);
                 double change = checkNumberValidity("Unesite kilometražu: ");
                 string affirmation = confirmationMessage("izmijeniti");
                 editActionOnAffirmation(users, affirmation, (int)id, writeTripMenu, condition,
@@ -804,7 +838,7 @@ static void tripMenuFunctionality(string input, int idCounterTrip, List<Dictiona
             }
             else if (condition == "c")
             {
-                double id = fetchUserById(users);
+                double id = fetchTripById(users);
                 double change = checkNumberValidity("Unesite potrošeno gorivo: ");
                 string affirmation = confirmationMessage("izmijeniti");
                 editActionOnAffirmation(users, affirmation, (int)id, writeTripMenu, condition,
@@ -812,7 +846,7 @@ static void tripMenuFunctionality(string input, int idCounterTrip, List<Dictiona
             }
             else if (condition == "d")
             {
-                double id = fetchUserById(users);
+                double id = fetchTripById(users);
                 double change = checkNumberValidity("Unesite cijenu po litri: ");
                 string affirmation = confirmationMessage("izmijeniti");
                 editActionOnAffirmation(users, affirmation, (int)id, writeTripMenu, condition,
